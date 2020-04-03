@@ -1,0 +1,7 @@
+{"name": "Pasta","ingredients": ["Flour", "Eggs", "Salt", "Water"],"organic": true,"dimensions": {"weight": 500.00}}
+{"name": "Pizza","ingredients": ["Flour", "Eggs", "Salt", "Water", "Sausage", "Tomato"],"organic": true,"dimensions": {"weight": 800.00}}
+{"name": "Sandwich","ingredients": ["Bread", "Tomato", "Salt", "Sausage", "Cheese"],"organic": true,"dimensions": {"weight": 250.00}}
+{"name": "Burger","ingredients": ["Bread", "Tomato", "Garlic", "Meat"],"organic": true,"dimensions": {"weight": 200.00}}
+{"name": "Crisps","ingredients": ["Garlic", "Potato", "Salt", "Water"],"organic": false,"dimensions": {"weight": 350.00}}
+{"name": "Soup","ingredients": ["Mushrooms", "Salt", "Meat", "Water"],"organic": true,"dimensions": {"weight": 400.00}}
+{"name": "Caesar","ingredients": ["Bread", "Meat", "Salt", "Green", "Lemon"],"organic": true,"dimensions": {"weight": 500.00}}
