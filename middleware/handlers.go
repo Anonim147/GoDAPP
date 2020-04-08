@@ -2,12 +2,19 @@ package middleware
 
 import (
 	"database/sql"
+	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
+
+type JsonStruct struct {
+	key       string
+	valuetype string
+}
 
 func createConnection() *sql.DB {
 	err := godotenv.Load(".env")
@@ -47,4 +54,67 @@ func copyToTable(path string, tableName string, db *sql.DB) int64 {
 		panic(err)
 	}
 	return rows
+}
+
+func DownloadFile(url string, filepath string) error {
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getJsobKeys() []JsonStruct {
+	db := createConnection()
+	query := `WITH RECURSIVE doc_key_and_value_recursive(key, value) AS (
+		SELECT
+		  t.key,
+		  t.value
+		FROM store, jsonb_each(store.data) AS t
+	  
+		UNION ALL
+	  
+		SELECT
+		  CONCAT(doc_key_and_value_recursive.key, '.', t.key),
+		  t.value
+		FROM doc_key_and_value_recursive,
+		  jsonb_each(
+			CASE 
+			  WHEN jsonb_typeof(doc_key_and_value_recursive.value) <> 'object' THEN '{}' :: JSONB
+			  ELSE doc_key_and_value_recursive.value
+			END
+			) AS t
+	  )
+	  SELECT DISTINCT key as key, jsonb_typeof(value) as valuetype
+	  FROM doc_key_and_value_recursive
+	  WHERE jsonb_typeof(doc_key_and_value_recursive.value) NOT IN ( 'object')   --'array',
+	  ORDER BY key`
+	rows, err := db.Query(query)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+	data := []JsonStruct{}
+	for rows.Next() {
+		r := JsonStruct{}
+		err = rows.Scan(&r.key, &r.valuetype)
+		if err != nil {
+			panic(err)
+		}
+		data = append(data, r)
+	}
+	return data
 }
