@@ -77,13 +77,15 @@ func DownloadFile(url string, filepath string) error {
 	return nil
 }
 
-func getJsobKeys() []JsonStruct {
+func getJsobKeys(tableName string) []JsonStruct {
 	db := createConnection()
-	query := `WITH RECURSIVE doc_key_and_value_recursive(key, value) AS (
+	query := `
+	tableName varchar := ` + tableName + `;
+	WITH RECURSIVE doc_key_and_value_recursive(key, value) AS (
 		SELECT
 		  t.key,
 		  t.value
-		FROM store, jsonb_each(store.data) AS t
+		  FROM ` + tableName + `, jsonb_each(` + tableName + `.data) AS t
 	  
 		UNION ALL
 	  
