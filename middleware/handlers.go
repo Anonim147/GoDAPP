@@ -11,11 +11,6 @@ import (
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
 
-type JsonStruct struct {
-	key       string
-	valuetype string
-}
-
 func createConnection() *sql.DB {
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -77,7 +72,7 @@ func DownloadFile(url string, filepath string) error {
 	return nil
 }
 
-func getJsobKeys(tableName string) []JsonStruct {
+func getTableKeys(tableName string) map[string]string {
 	db := createConnection()
 	query := `
 	tableName varchar := ` + tableName + `;
@@ -109,14 +104,14 @@ func getJsobKeys(tableName string) []JsonStruct {
 		panic(err)
 	}
 	defer rows.Close()
-	data := []JsonStruct{}
+	data := map[string]string{}
 	for rows.Next() {
-		r := JsonStruct{}
-		err = rows.Scan(&r.key, &r.valuetype)
+		var column, columntype string
+		err = rows.Scan(&column, &columntype)
 		if err != nil {
 			panic(err)
 		}
-		data = append(data, r)
+		data[column] = columntype
 	}
 	return data
 }
