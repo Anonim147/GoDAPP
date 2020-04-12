@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"GODAPP/models"
+
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
@@ -116,7 +118,7 @@ func getTableKeys(tableName string) map[string]string {
 	return data
 }
 
-func getQuery(data SelectModel) string {
+func getQuery(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {
 		r := strings.Replace(s, ".", ",", -1)
