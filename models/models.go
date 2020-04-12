@@ -2,7 +2,7 @@ package models
 
 
 type SelectModel struct {
-	TableName string `json:tablename`
+	TableName string `json:tablename`,
 	ColumnNames []string `json:columnnames`,
 	Conditions []SelectCondition `json:conditions`,
 }
