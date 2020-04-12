@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
@@ -113,4 +114,16 @@ func getTableKeys(tableName string) map[string]string {
 		data[column] = columntype
 	}
 	return data
+}
+
+func getQuery(data SelectModel) string {
+	query := `SELECT `
+	for _, s := range data.Columns {
+		r := strings.Replace(s, ".", ",", -1)
+		query += `data #> '{ ` + r + `}'  AS "` + strings.Replace(s, ".", "_", -1) + `" ,`
+	}
+	query = query[:len(query)-1]
+	query += ` FROM ` + data.TableName
+
+	return query
 }
