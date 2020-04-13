@@ -5,3 +5,4 @@
 {"name": "Crisps","ingredients": ["Garlic", "Potato", "Salt", "Water"],"organic": false,"dimensions": {"weight": 350.00}}
 {"name": "Soup","ingredients": ["Mushrooms", "Salt", "Meat", "Water"],"organic": true,"dimensions": {"weight": 400.00}}
 {"name": "Caesar","ingredients": ["Bread", "Meat", "Salt", "Green", "Lemon"],"organic": true,"dimensions": {"weight": 500.00}}
+{"name": "Salt","ingredients": ["Bread", "Meat", "Salt", "Green", "Lemon"],"organic": true,"dimensions": {}}

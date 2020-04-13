@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -118,14 +119,54 @@ func getTableKeys(tableName string) map[string]string {
 	return data
 }
 
-func getQuery(data models.SelectModel) string {
+func getQueryFromJSON(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {
-		r := strings.Replace(s, ".", ",", -1)
-		query += `data #> '{ ` + r + `}'  AS "` + strings.Replace(s, ".", "_", -1) + `" ,`
+		//todo: do another symbol
+		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(s, ".", ",", -1), s)
 	}
 	query = query[:len(query)-1]
 	query += ` FROM ` + data.TableName
 
+	return query
+}
+
+func getConditionFromJSON(data models.SelectModel) string {
+	query := `WHERE`
+	return query
+}
+
+func mapLogicalype(data models.SelectCondition) string {
+	switch data.LogicalType {
+	case "and":
+		return " AND "
+	default:
+		return " OR "
+	}
+}
+
+func mapConditionType(data models.SelectCondition) string {
+
+	switch data.ComparisonType {
+	case "lt":
+		return fmt.Sprintf(` data #> '{ %s }' < '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+	case "let":
+		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+	case "gt":
+		return fmt.Sprintf(` data #> '{ %s }' >= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+	case "get":
+		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+	case "like":
+		return fmt.Sprintf(` data #> '{ %s }' like '%%s%' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value) //to do : change
+	default:
+		return fmt.Sprintf(` data #> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+	}
+}
+
+func mapFilters(data models.SelectModel) string {
+	if len(data.Conditions) == 0 {
+		return ""
+	}
+	query := " WHERE "
 	return query
 }
