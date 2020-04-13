@@ -119,23 +119,6 @@ func getTableKeys(tableName string) map[string]string {
 	return data
 }
 
-func getQueryFromJSON(data models.SelectModel) string {
-	query := `SELECT `
-	for _, s := range data.Columns {
-		//todo: do another symbol
-		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(s, ".", ",", -1), s)
-	}
-	query = query[:len(query)-1]
-	query += ` FROM ` + data.TableName
-
-	return query
-}
-
-func getConditionFromJSON(data models.SelectModel) string {
-	query := `WHERE`
-	return query
-}
-
 func mapLogicalype(data models.SelectCondition) string {
 	switch data.LogicalType {
 	case "and":
@@ -145,7 +128,7 @@ func mapLogicalype(data models.SelectCondition) string {
 	}
 }
 
-func mapConditionType(data models.SelectCondition) string {
+func mapCondition(data models.SelectCondition) string {
 
 	switch data.ComparisonType {
 	case "lt":
@@ -157,16 +140,44 @@ func mapConditionType(data models.SelectCondition) string {
 	case "get":
 		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	case "like":
-		return fmt.Sprintf(` data #> '{ %s }' like '%%s%' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value) //to do : change
+		return fmt.Sprintf(` data #> '{ %s }' like '%%%s%%' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+	case "eq":
+		return fmt.Sprintf(` data #> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	default:
 		return fmt.Sprintf(` data #> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	}
 }
 
-func mapFilters(data models.SelectModel) string {
-	if len(data.Conditions) == 0 {
-		return ""
-	}
+func getFilters(data models.SelectModel) string {
 	query := " WHERE "
+
+	for i, condition := range data.Conditions {
+		if i != 0 {
+			query += condition.LogicalType
+		}
+		query += mapCondition(condition)
+	}
+	return query
+}
+
+func getColumns(data models.SelectModel) string {
+	query := `SELECT `
+	for _, s := range data.Columns {
+		//todo: do another symbol
+		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(s, ".", ",", -1), s)
+	}
+	query = query[:len(query)-1]
+	query += ` FROM ` + data.TableName
+
+	return query
+}
+
+func getQuery(data models.SelectModel) string {
+	query := getColumns(data)
+	if len(data.Conditions) == 0 {
+		return query
+	}
+	query += getFilters(data)
+	//get limit? where?
 	return query
 }
