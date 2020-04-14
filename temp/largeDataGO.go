@@ -1,3 +1,5 @@
+package temp
+
 func method3(db *gorm.DB) {
     records := make([]Record, 0)
     defer timeTrack(time.Now(), "Method 3")

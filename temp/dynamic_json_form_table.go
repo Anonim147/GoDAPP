@@ -1,4 +1,4 @@
-package test_data
+package temp
 
 import (
 	"database/sql"
