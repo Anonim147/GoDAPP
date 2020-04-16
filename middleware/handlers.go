@@ -3,6 +3,9 @@ package middleware
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+
+	"GODAPP/models"
 
 	"github.com/gorilla/mux"
 
@@ -10,14 +13,50 @@ import (
 )
 
 func GetTableKeys(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	//w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	params := mux.Vars(r)
 	data := getTableKeys(params["table"])
-
-	/*if err != nil {
-		log.Fatalf("Unable to get all user. %v", err)
-	}*/
-
 	json.NewEncoder(w).Encode(data)
+}
+
+/*func GetRows(w http.ResponseWriter, r *http.Request) {
+	//w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	data := getSelectData()
+	w.Write([]byte(data))
+}*/
+
+func GetSelectedData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	reqData := models.SelectModel{}
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	data := getSelectData(reqData)
+	w.Write([]byte(data))
+}
+
+func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	params := mux.Vars(r)
+	limit, _ := strconv.Atoi(params["limit"])
+	offset, _ := strconv.Atoi(params["offset"])
+	reqData := models.SelectModel{}
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response := getPagedSelectData(reqData, r.Host, limit, offset)
+	w.Write([]byte(response))
 }

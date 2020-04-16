@@ -9,11 +9,22 @@ import (
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
 
-func GetQuery(data models.SelectModel) string {
-	query := getColumns(data)
+func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
+	query := `SELECT row_to_json(d) FROM( `
+	query += getColumns(data)
 	if len(data.Conditions) == 0 {
 		return query
 	}
+	query += getFilters(data)
+	if limit != 0 {
+		query += getLimitOffset(limit, offset)
+	}
+	query += `)d`
+	return query
+}
+
+func GetCountQuery(data models.SelectModel) string {
+	query := fmt.Sprintf("SELECT COUNT(id) from %s ", data.TableName)
 	query += getFilters(data)
 	return query
 }
@@ -24,7 +35,7 @@ func getColumns(data models.SelectModel) string {
 		//todo: do another symbol
 		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(s, ".", ",", -1), s)
 	}
-	query = query[:len(query)-1]
+	query = query[:len(query)-2]
 	query += ` FROM ` + data.TableName
 
 	return query
@@ -58,9 +69,9 @@ func mapCondition(data models.SelectCondition) string {
 	case "let":
 		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	case "gt":
-		return fmt.Sprintf(` data #> '{ %s }' >= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` data #> '{ %s }' > '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	case "get":
-		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` data #> '{ %s }' >= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	case "like":
 		return fmt.Sprintf(` data #>> '{ %s }' like '%%%s%%' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	case "eq":
@@ -68,4 +79,8 @@ func mapCondition(data models.SelectCondition) string {
 	default:
 		return fmt.Sprintf(` data #>> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	}
+}
+
+func getLimitOffset(limit int, offset int) string {
+	return fmt.Sprintf(" ORDER BY id ASC LIMIT %d OFFSET %d", limit, offset)
 }

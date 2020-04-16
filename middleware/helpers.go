@@ -2,10 +2,14 @@ package middleware
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
+	"GODAPP/models"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
@@ -113,4 +117,85 @@ func getTableKeys(tableName string) map[string]string {
 		data[column] = columntype
 	}
 	return data
+}
+
+func getSelectData(data models.SelectModel) string {
+	db := createConnection()
+	defer db.Close()
+	query := GetSelectQuery(data, 0, 0)
+	rows, err := db.Query(query)
+	if err != nil {
+		panic(err)
+	}
+	queryText := `{"data" :[`
+	for rows.Next() {
+		var data []byte
+		err = rows.Scan(&data)
+		if err != nil {
+			panic(err)
+		}
+		queryText += string(data) + ","
+	}
+	queryText = queryText[:len(queryText)-1] + "]}"
+	return queryText
+}
+
+func getDataCount(data models.SelectModel) int {
+	db := createConnection()
+	defer db.Close()
+	query := fmt.Sprintf(`SELECT COUNT(id) FROM %s `, data.TableName)
+	query += getFilters(data)
+
+	var count int
+	row := db.QueryRow(query)
+	err := row.Scan(&count)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return count
+}
+
+func getLinkForPagination(host string, limit int, offset int) string {
+	return fmt.Sprintf(`%s/api/get_data&limit={%d}&offset={%d}`, host, limit, offset) //TO DO: привязати ссилку глобально
+}
+
+func getPagedSelectData(data models.SelectModel, host string, limit int, offset int) string {
+	pag := models.Pagination{}
+
+	db := createConnection()
+
+	countOfRows := getDataCount(data)
+	pag.SelfLink = getLinkForPagination(host, limit, offset)
+	if offset == 0 {
+		pag.PrevLink = ""
+	} else {
+		pag.PrevLink = getLinkForPagination(host, limit, offset-limit)
+	}
+	if countOfRows > limit+offset {
+		pag.NextLink = getLinkForPagination(host, limit, offset+limit)
+	} else {
+		pag.NextLink = ""
+	}
+	pagData, _ := json.Marshal(pag)
+
+	query := GetSelectQuery(data, limit, offset)
+
+	rows, err := db.Query(query)
+	if err != nil {
+		fmt.Println(query)
+		fmt.Println("fuck")
+		panic(err)
+	}
+	queryText := `{"data" :[`
+	for rows.Next() {
+		var data []byte
+		err = rows.Scan(&data)
+		if err != nil {
+			panic(err)
+		}
+		queryText += string(data) + ","
+	}
+	queryText = queryText[:len(queryText)-1] + "]," + "\n \"pagination:\" " + string(pagData) + "}"
+	return queryText
 }
