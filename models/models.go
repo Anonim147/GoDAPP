@@ -4,7 +4,6 @@ type SelectModel struct {
 	TableName  string            `json:"tablename"`
 	Columns    []string          `json:"columns"`
 	Conditions []SelectCondition `json:"conditions"`
-	Limit      int
 }
 
 type SelectCondition struct {
@@ -12,6 +11,13 @@ type SelectCondition struct {
 	LogicalType    string `json:"logicaltype"`
 	ComparisonType string `json:"comparisontype"`
 	Value          string `json:"value"`
+}
+
+type MergeModel struct {
+	SourceTable  string                 `json:"source_table"`
+	TargetTable  string                 `json:"target_table"`
+	MergeColumns map[string]interface{} `json:"merge_columns"`
+	Conditions   []SelectCondition      `json:"conditions"`
 }
 
 type Pagination struct {

@@ -12,10 +12,10 @@ import (
 func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
 	query := `SELECT row_to_json(d) FROM( `
 	query += getColumns(data)
-	if len(data.Conditions) == 0 {
-		return query
+
+	if len(data.Conditions) > 0 {
+		query += getFilters(data.Conditions)
 	}
-	query += getFilters(data)
 	if limit != 0 {
 		query += getLimitOffset(limit, offset)
 	}
@@ -25,7 +25,18 @@ func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
 
 func GetCountQuery(data models.SelectModel) string {
 	query := fmt.Sprintf("SELECT COUNT(id) from %s ", data.TableName)
-	query += getFilters(data)
+	query += getFilters(data.Conditions)
+	return query
+}
+
+func GetMergeQuery(data models.MergeModel) string {
+	query := fmt.Sprintf("INSERT INTO %s(data) SELECT row_to_json(d) FROM( ", data.TargetTable)
+	query += getMergeColumns(data)
+
+	if len(data.Conditions) > 0 {
+		query += getFilters(data.Conditions)
+	}
+	query += `)d`
 	return query
 }
 
@@ -41,10 +52,10 @@ func getColumns(data models.SelectModel) string {
 	return query
 }
 
-func getFilters(data models.SelectModel) string {
+func getFilters(data []models.SelectCondition) string {
 	query := " WHERE "
 
-	for i, condition := range data.Conditions {
+	for i, condition := range data {
 		if i != 0 {
 			query += mapLogicalType(condition)
 		}
@@ -83,4 +94,16 @@ func mapCondition(data models.SelectCondition) string {
 
 func getLimitOffset(limit int, offset int) string {
 	return fmt.Sprintf(" ORDER BY id ASC LIMIT %d OFFSET %d", limit, offset)
+}
+
+func getMergeColumns(data models.MergeModel) string {
+	query := `SELECT `
+	for srcCol, targCol := range data.MergeColumns {
+		//todo: do another symbol
+		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(srcCol, ".", ",", -1), targCol)
+	}
+	query = query[:len(query)-2]
+	query += ` FROM ` + data.SourceTable
+
+	return query
 }

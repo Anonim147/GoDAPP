@@ -22,14 +22,6 @@ func GetTableKeys(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(data)
 }
 
-/*func GetRows(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	data := getSelectData()
-	w.Write([]byte(data))
-}*/
-
 func GetSelectedData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -58,5 +50,21 @@ func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := getPagedSelectData(reqData, r.Host, limit, offset)
+	w.Write([]byte(response))
+}
+
+func MergeJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	reqData := models.MergeModel{}
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	affected := mergeSelectedData(reqData)
+
+	response, err := json.Marshal(affected)
 	w.Write([]byte(response))
 }

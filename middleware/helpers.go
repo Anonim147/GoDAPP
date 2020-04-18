@@ -140,26 +140,6 @@ func getSelectData(data models.SelectModel) string {
 	return queryText
 }
 
-func getDataCount(data models.SelectModel) int {
-	db := createConnection()
-	defer db.Close()
-	query := fmt.Sprintf(`SELECT COUNT(id) FROM %s `, data.TableName)
-	query += getFilters(data)
-
-	var count int
-	row := db.QueryRow(query)
-	err := row.Scan(&count)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return count
-}
-
-func getLinkForPagination(host string, limit int, offset int) string {
-	return fmt.Sprintf(`%s/api/get_data&limit={%d}&offset={%d}`, host, limit, offset) //TO DO: привязати ссилку глобально
-}
-
 func getPagedSelectData(data models.SelectModel, host string, limit int, offset int) string {
 	pag := models.Pagination{}
 
@@ -198,4 +178,34 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	}
 	queryText = queryText[:len(queryText)-1] + "]," + "\n \"pagination:\" " + string(pagData) + "}"
 	return queryText
+}
+
+func getDataCount(data models.SelectModel) int {
+	db := createConnection()
+	defer db.Close()
+	query := GetCountQuery(data)
+
+	var count int
+	row := db.QueryRow(query)
+	err := row.Scan(&count)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return count
+}
+
+func getLinkForPagination(host string, limit int, offset int) string {
+	return fmt.Sprintf(`%s/api/get_data&limit={%d}&offset={%d}`, host, limit, offset) //TO DO: привязати ссилку глобально
+}
+
+func mergeSelectedData(data models.MergeModel) int64 {
+	db := createConnection()
+	query := GetMergeQuery(data)
+	res, err := db.Exec(query)
+	if err != nil {
+		panic(err)
+	}
+	rows, err := res.RowsAffected()
+	return rows
 }
