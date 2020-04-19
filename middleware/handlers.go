@@ -54,7 +54,7 @@ func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
 }
 
 func MergeJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/text")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	reqData := models.MergeModel{}
@@ -63,8 +63,8 @@ func MergeJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	affected := mergeSelectedData(reqData)
-
-	response, err := json.Marshal(affected)
-	w.Write([]byte(response))
+	/*affected := mergeSelectedData(reqData)
+	response, err := json.Marshal(affected)*/
+	query := GetMergeQuery(reqData)
+	w.Write([]byte(query))
 }
