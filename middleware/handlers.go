@@ -2,7 +2,10 @@ package middleware
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"GODAPP/models"
@@ -53,18 +56,44 @@ func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(response))
 }
 
-func MergeJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/text")
+func MergeJSON(w http.ResponseWriter, r *http.Request) { // TO DO: доробити до кінця цю шнягу
+	w.Header().Set("Content-Type", "application/text") // TO DO: поміняти на json
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
+	m := map[string]interface{}{}
 	reqData := models.MergeModel{}
 	err := json.NewDecoder(r.Body).Decode(&reqData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	/*affected := mergeSelectedData(reqData)
-	response, err := json.Marshal(affected)*/
-	query := GetMergeQuery(reqData)
-	w.Write([]byte(query))
+	m["affected_rows"] = mergeSelectedData(reqData)
+	jsonResp, _ := json.Marshal(m)
+	w.Write([]byte(jsonResp))
+}
+
+func UploadTable(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	m := map[string]string{}
+	if r.Method == "POST" {
+		src, hdr, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		defer src.Close()
+
+		path := filepath.Join(os.TempDir(), hdr.Filename)
+		dst, err := os.Create(path)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		defer dst.Close()
+
+		io.Copy(dst, src)
+		m["path"] = path
+		json, _ := json.Marshal(m)
+		w.Write([]byte(json))
+	}
 }
