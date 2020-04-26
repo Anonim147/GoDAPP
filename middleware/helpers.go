@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bufio"
+	"crypto/md5"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -8,10 +10,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"GODAPP/models"
 
 	"github.com/joho/godotenv"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
 
@@ -208,4 +212,102 @@ func mergeSelectedData(data models.MergeModel) int64 {
 	}
 	rows, err := res.RowsAffected()
 	return rows
+}
+
+func getDataFromJsonFile(filepath string) []string {
+	var result map[string]interface{}
+	var jsondtata []string
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		row := scanner.Text()
+		first := strings.Index(row, "{")
+		last := strings.LastIndex(row, "}")
+		if first > 0 && last > first {
+			row = row[first : last+1]
+			fmt.Println(row)
+			err = json.Unmarshal([]byte(row), &result)
+			if err == nil {
+				jsondtata = append(jsondtata, string(row))
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return jsondtata
+}
+
+func insertDataIntoTable(data []string, tablename string) int {
+	db := createConnection()
+	//db.SetMaxIdleConns(10)
+	//db.SetMaxOpenConns(10)
+	//db.SetConnMaxLifetime(0)
+	txn, err := db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+	stmt, _ := txn.Prepare(pq.CopyIn(tablename, "data", "hash"))
+	var rowsInserted int = 0
+	for _, jsonRow := range data {
+		_, err := stmt.Exec(jsonRow, getMD5(jsonRow))
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			rowsInserted++
+		}
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return rowsInserted
+}
+
+func getMD5(data string) string {
+	byteData := []byte(data)
+	return fmt.Sprintf("%x", md5.Sum(byteData))
+}
+
+func getQueryForInsertRecord(tablename string, jsonRow string) string {
+	fmt.Println(jsonRow)
+	hashRow := getMD5(jsonRow)
+	fmt.Println(hashRow)
+	return fmt.Sprintf(`INSERT INTO %s
+		(data, hash)
+		SELECT '%s', '%s'
+		FROM %s
+		WHERE NOT EXISTS (SELECT 1
+		FROM %s
+		WHERE hash = '%s') LIMIT 1`, tablename, jsonRow, hashRow, tablename, tablename, hashRow)
+}
+
+func insertNewRecords(tablename string, data []string) {
+	db := createConnection()
+
+	for _, jsonRow := range data {
+		query := getQueryForInsertRecord(tablename, jsonRow)
+		_, err := db.Exec(query)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }

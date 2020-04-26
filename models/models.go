@@ -25,3 +25,8 @@ type Pagination struct {
 	SelfLink string `json:"self_link"`
 	NextLink string `json:"next_link"`
 }
+
+type InsertTableModel struct {
+	TableName string `json:"tablename"`
+	FilePath  string `json:"filepath"`
+}
