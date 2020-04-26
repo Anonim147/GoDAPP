@@ -15,11 +15,7 @@ func Router() *mux.Router {
 	router.HandleFunc("/api/merge_data", middleware.MergeJSON).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/upload", middleware.UploadTable).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/insert_data", middleware.ImportToNewTable).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/update_data", middleware.UpdateTable).Methods("POST", "OPTIONS")
 
-	/*router.HandleFunc("/api/user/", middleware.GetAllUser).Methods("GET", "OPTIONS")
-	router.HandleFunc("/api/newuser", middleware.CreateUser).Methods("POST", "OPTIONS")
-	router.HandleFunc("/api/user/{id}", middleware.UpdateUser).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/api/deleteuser/{id}", middleware.DeleteUser).Methods("DELETE", "OPTIONS")
-	*/
 	return router
 }

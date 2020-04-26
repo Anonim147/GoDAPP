@@ -21,3 +21,7 @@ insert into store(data)
                 WHERE  data #>> '{ dimensions,weight }' like '%50%'  
                     OR  data #>> '{ name }' = 'Pizza') d 
 
+
+insert into store(data) 
+
+    select values from (select jsonb_array_elements(temp.data::jsonb) as values from temp) temp;

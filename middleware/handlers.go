@@ -75,7 +75,6 @@ func UploadTable(w http.ResponseWriter, r *http.Request) { // TO DO: проче�
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	m := map[string]string{}
 	if r.Method == "POST" {
 		src, hdr, err := r.FormFile("file")
 		if err != nil {
@@ -91,9 +90,9 @@ func UploadTable(w http.ResponseWriter, r *http.Request) { // TO DO: проче�
 		defer dst.Close()
 
 		io.Copy(dst, src)
-		m["path"] = path
-		json, _ := json.Marshal(m)
-		w.Write([]byte(json))
+
+		resData := fmt.Sprintf(`{"path" : "%s"}`, path)
+		w.Write([]byte(resData))
 	}
 }
 
@@ -107,8 +106,22 @@ func ImportToNewTable(w http.ResponseWriter, r *http.Request) { // TO DO: зро
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	jsonData := getDataFromJsonFile(reqData.FilePath)
-	inserted := insertDataIntoTable(jsonData, reqData.TableName)
-	resData := fmt.Sprintf(`{"affected" : %d}`, inserted)
+	affected := insertJSONIntoTable(reqData.FilePath, reqData.TableName)
+	resData := fmt.Sprintf(`{"affected" : "%d"}`, affected)
+	w.Write([]byte(resData))
+}
+
+func UpdateTable(w http.ResponseWriter, r *http.Request) { // TO DO: зробити норм модельку на вхід і на вихід
+	w.Header().Set("Content-Type", "application/text")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	reqData := models.InsertTableModel{}
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	affected := updateJSONIntoTable(reqData.FilePath, reqData.TableName)
+	resData := fmt.Sprintf(`{"affected" : "%d"}`, affected)
 	w.Write([]byte(resData))
 }

@@ -40,6 +40,32 @@ func GetMergeQuery(data models.MergeModel) string {
 	return query
 }
 
+func GetQueryForCopying(tablename string, path string) string {
+	return fmt.Sprint(`copy %s(data) from '%s'`, tablename, path)
+}
+
+func GetQueryForParseJSON(tablename string) string {
+	return fmt.Sprint(`insert into %s (data) select values from (select jsonb_array_elements(temp.data::jsonb) 
+		as values from temp) temp`, tablename)
+}
+
+func GetQueryForCreatingHash(tablename string) string {
+	return fmt.Sprintf(`update %s set hash = md5(data::text);`, tablename)
+}
+
+func GetQueryForUpdateTable(tablename string) string {
+	return fmt.Sprintf(`insert into %s (data, hash) select data, hash from tempjson 
+		where not exists(select 1 from %s where %s.hash = tempjson.hash);`, tablename, tablename, tablename)
+}
+
+func GetQueryForClearTable(tablename string) string {
+	return fmt.Sprintf(`delete from %s`, tablename)
+}
+
+func GetQueryForDropTable(tablename string) string {
+	return fmt.Sprintf(`drop table %s`, tablename)
+}
+
 func getColumns(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {

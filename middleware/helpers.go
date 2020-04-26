@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"regexp"
 	"strings"
 
 	"GODAPP/models"
@@ -287,27 +289,98 @@ func getMD5(data string) string {
 	return fmt.Sprintf("%x", md5.Sum(byteData))
 }
 
-func getQueryForInsertRecord(tablename string, jsonRow string) string {
-	fmt.Println(jsonRow)
-	hashRow := getMD5(jsonRow)
-	fmt.Println(hashRow)
-	return fmt.Sprintf(`INSERT INTO %s
-		(data, hash)
-		SELECT '%s', '%s'
-		FROM %s
-		WHERE NOT EXISTS (SELECT 1
-		FROM %s
-		WHERE hash = '%s') LIMIT 1`, tablename, jsonRow, hashRow, tablename, tablename, hashRow)
-}
+func readByChuncks(sourcePath string, targetPath string) {
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sourceFile.Close()
 
-func insertNewRecords(tablename string, data []string) {
-	db := createConnection()
+	targetFile, err := os.OpenFile(targetPath,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer targetFile.Close()
 
-	for _, jsonRow := range data {
-		query := getQueryForInsertRecord(tablename, jsonRow)
-		_, err := db.Exec(query)
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := sourceFile.Read(buf)
+		if n > 0 {
+			byteText := removeSpacesAndNewLines(buf[:n])
+			targetFile.Write(byteText) // your read buffer.
+		}
+
+		if err == io.EOF {
+			break
+		}
+
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal("read %d bytes: %v", n, err)
+			break
 		}
 	}
+}
+
+func removeSpacesAndNewLines(data []byte) []byte {
+	space := regexp.MustCompile(`\s+`)
+	s := space.ReplaceAllString(string(data), " ")
+	return []byte(s)
+}
+
+func insertJSONIntoTable(filePath string, tablename string) int64 {
+	tempFilePath := path.Join(os.TempDir(), "tempfile.json")
+	readByChuncks(filePath, tempFilePath)
+
+	db := createConnection()
+	defer db.Close()
+
+	_, err := db.Exec(GetQueryForCopying("temp", tempFilePath))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := db.Exec(GetQueryForParseJSON(tablename))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(GetQueryForCreatingHash(tablename))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(GetQueryForClearTable("temp"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.Remove(tempFilePath)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	affected, err := res.RowsAffected()
+	return affected
+}
+
+func updateJSONIntoTable(filepath string, targetTable string) int64 {
+	//To do: temporary file and temporary table to .env
+	insertJSONIntoTable(filepath, "tempjson")
+
+	db := createConnection() //TO DO: ?????
+	defer db.Close()
+
+	res, err := db.Exec(GetQueryForUpdateTable(targetTable))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(GetQueryForClearTable("tempjson"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	affected, err := res.RowsAffected()
+	return affected
 }
