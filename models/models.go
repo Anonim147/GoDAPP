@@ -30,3 +30,9 @@ type InsertTableModel struct {
 	TableName string `json:"tablename"`
 	FilePath  string `json:"filepath"`
 }
+
+type BaseResponse struct {
+	Success bool        `json:"success"`
+	Value   interface{} `json:"value"`
+	Error   string      `json:"error"`
+}

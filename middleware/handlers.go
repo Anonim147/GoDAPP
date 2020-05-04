@@ -73,55 +73,97 @@ func MergeJSON(w http.ResponseWriter, r *http.Request) { // TO DO: прочек�
 
 func UploadTable(w http.ResponseWriter, r *http.Request) { // TO DO: прочекати
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	w.Header().Set("Content-Type", "application/json")
 
+	//w.Header().Set("Content-Type", "application/json")
 	if r.Method == "POST" {
 		src, hdr, err := r.FormFile("file")
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			w.Write([]byte(err.Error()))
 		}
 		defer src.Close()
 
 		path := filepath.Join(os.TempDir(), hdr.Filename)
 		dst, err := os.Create(path)
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			//http.Error(w, err.Error(), 500)
+			w.Write([]byte(err.Error()))
 		}
 		defer dst.Close()
 
 		io.Copy(dst, src)
-
-		resData := fmt.Sprintf(`{"path" : "%s"}`, path)
-		w.Write([]byte(resData))
+		resData := models.BaseResponse{
+			Success: true,
+			Value:   path,
+			Error:   "",
+		}
+		response, _ := json.Marshal(resData)
+		w.Write([]byte(response))
 	}
 }
 
-func ImportToNewTable(w http.ResponseWriter, r *http.Request) { // TO DO: зробити норм модельку на вхід і на вихід
-	w.Header().Set("Content-Type", "application/text")
+func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	reqData := models.InsertTableModel{}
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	if r.Method == "POST" {
+		reqData := models.InsertTableModel{}
+		err := json.NewDecoder(r.Body).Decode(&reqData)
+		if err != nil {
+			fmt.Println(reqData)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		affected, err := insertJSONIntoTable(reqData.FilePath, reqData.TableName)
+		fmt.Print("done")
+		fmt.Println(err)
+		resData := models.BaseResponse{
+			Success: err == nil,
+			Value:   affected,
+			Error:   "",
+		}
+		response, _ := json.Marshal(resData)
+		w.Write(response)
 	}
-	affected := insertJSONIntoTable(reqData.FilePath, reqData.TableName)
-	resData := fmt.Sprintf(`{"affected" : "%d"}`, affected)
-	w.Write([]byte(resData))
 }
 
 func UpdateTable(w http.ResponseWriter, r *http.Request) { // TO DO: зробити норм модельку на вхід і на вихід
-	w.Header().Set("Content-Type", "application/text")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	if r.Method == "POST" {
+		reqData := models.InsertTableModel{}
+		err := json.NewDecoder(r.Body).Decode(&reqData)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		affected, err := updateJSONIntoTable(reqData.FilePath, reqData.TableName)
+		errtext := ""
+		if err != nil {
+			errtext = err.Error()
+		}
+		resData := models.BaseResponse{
+			Success: err == nil,
+			Value:   affected,
+			Error:   errtext,
+		}
+		response, _ := json.Marshal(resData)
+		w.Write(response)
+	}
+}
+
+func GetTableList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	reqData := models.InsertTableModel{}
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	affected := updateJSONIntoTable(reqData.FilePath, reqData.TableName)
-	resData := fmt.Sprintf(`{"affected" : "%d"}`, affected)
-	w.Write([]byte(resData))
+	m := map[string]interface{}{}
+	tableList, _ := getTableList()
+	m["tables"] = tableList
+	data, _ := json.Marshal(m)
+	w.Write(data)
 }

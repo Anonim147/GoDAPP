@@ -16,6 +16,7 @@ func Router() *mux.Router {
 	router.HandleFunc("/api/upload", middleware.UploadTable).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/insert_data", middleware.ImportToNewTable).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/update_data", middleware.UpdateTable).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/get_table_list", middleware.GetTableList).Methods("GET", "OPTIONS")
 
 	return router
 }

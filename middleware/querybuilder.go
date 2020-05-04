@@ -9,6 +9,10 @@ import (
 	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
 
+func GetQueryForTableList() string {
+	return `select tablename from pg_catalog.pg_tables where schemaname !='pg_catalog' and schemaname != 'information_schema'`
+}
+
 func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
 	query := `SELECT row_to_json(d) FROM( `
 	query += getColumns(data)
@@ -41,11 +45,11 @@ func GetMergeQuery(data models.MergeModel) string {
 }
 
 func GetQueryForCopying(tablename string, path string) string {
-	return fmt.Sprint(`copy %s(data) from '%s'`, tablename, path)
+	return fmt.Sprintf(`copy %s (data) from '%s'`, tablename, path)
 }
 
 func GetQueryForParseJSON(tablename string) string {
-	return fmt.Sprint(`insert into %s (data) select values from (select jsonb_array_elements(temp.data::jsonb) 
+	return fmt.Sprintf(`insert into %s (data) select values from (select jsonb_array_elements(temp.data::jsonb) 
 		as values from temp) temp`, tablename)
 }
 
@@ -53,9 +57,9 @@ func GetQueryForCreatingHash(tablename string) string {
 	return fmt.Sprintf(`update %s set hash = md5(data::text);`, tablename)
 }
 
-func GetQueryForUpdateTable(tablename string) string {
-	return fmt.Sprintf(`insert into %s (data, hash) select data, hash from tempjson 
-		where not exists(select 1 from %s where %s.hash = tempjson.hash);`, tablename, tablename, tablename)
+func GetQueryForUpdateTable(tablename string, temptable string) string {
+	return fmt.Sprintf(`insert into %s (data, hash) select data, hash from %s 
+		where not exists(select 1 from %s where %s.hash = %s.hash);`, tablename, temptable, tablename, tablename, temptable)
 }
 
 func GetQueryForClearTable(tablename string) string {
