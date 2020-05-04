@@ -97,7 +97,6 @@ func UploadTable(w http.ResponseWriter, r *http.Request) { // TO DO: проче�
 		resData := models.BaseResponse{
 			Success: true,
 			Value:   path,
-			Error:   "",
 		}
 		response, _ := json.Marshal(resData)
 		w.Write([]byte(response))
@@ -118,12 +117,13 @@ func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		affected, err := insertJSONIntoTable(reqData.FilePath, reqData.TableName)
-		fmt.Print("done")
-		fmt.Println(err)
+		value := affected
+		if err != nil {
+			value = err.Error()
+		}
 		resData := models.BaseResponse{
 			Success: err == nil,
-			Value:   affected,
-			Error:   "",
+			Value:   value,
 		}
 		response, _ := json.Marshal(resData)
 		w.Write(response)
@@ -143,14 +143,13 @@ func UpdateTable(w http.ResponseWriter, r *http.Request) { // TO DO: зроби�
 			return
 		}
 		affected, err := updateJSONIntoTable(reqData.FilePath, reqData.TableName)
-		errtext := ""
+		value := affected
 		if err != nil {
-			errtext = err.Error()
+			value = err.Error()
 		}
 		resData := models.BaseResponse{
 			Success: err == nil,
-			Value:   affected,
-			Error:   errtext,
+			Value:   value,
 		}
 		response, _ := json.Marshal(resData)
 		w.Write(response)

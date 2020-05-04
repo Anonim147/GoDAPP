@@ -257,6 +257,11 @@ func insertJSONIntoTable(filePath string, tablename string) (string, error) {
 	}
 	defer db.Close()
 
+	err = clearTable(db, "temp")
+	if err != nil {
+		return "", err
+	}
+
 	err = copyDataToTempTable(data, db)
 	if err != nil {
 		return "", err
@@ -273,11 +278,6 @@ func insertJSONIntoTable(filePath string, tablename string) (string, error) {
 	}
 
 	_, err = db.Exec(GetQueryForCreatingHash(tablename))
-	if err != nil {
-		return "", err
-	}
-
-	_, err = db.Exec(GetQueryForClearTable("temp"))
 	if err != nil {
 		return "", err
 	}
@@ -370,4 +370,12 @@ func getRandomString() string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func clearTable(db *sql.DB, tablename string) error {
+	_, err := db.Exec(GetQueryForClearTable(tablename))
+	if err != nil {
+		return err
+	}
+	return nil
 }

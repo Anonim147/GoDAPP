@@ -34,5 +34,4 @@ type InsertTableModel struct {
 type BaseResponse struct {
 	Success bool        `json:"success"`
 	Value   interface{} `json:"value"`
-	Error   string      `json:"error"`
 }
