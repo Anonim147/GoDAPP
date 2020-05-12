@@ -47,10 +47,10 @@ func createTable(tableName string, db *sql.DB) error {
 	return nil
 }
 
-func getTableKeys(tableName string) map[string]string { //TO DO: handle
+func getTableKeys(tableName string) ([]models.TableKey, error) { //TO DO: handle
 	db, err := createConnection()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer db.Close()
 	query := `
@@ -79,19 +79,19 @@ func getTableKeys(tableName string) map[string]string { //TO DO: handle
 	  ORDER BY key`
 	rows, err := db.Query(query)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer rows.Close()
-	data := map[string]string{}
+	data := []models.TableKey{}
 	for rows.Next() {
-		var column, columntype string
-		err = rows.Scan(&column, &columntype)
+		var tk models.TableKey
+		err = rows.Scan(&tk.KeyName, &tk.KeyType)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-		data[column] = columntype
+		data = append(data, tk)
 	}
-	return data
+	return data, nil
 }
 
 func getSelectData(data models.SelectModel) string {
@@ -116,8 +116,6 @@ func getSelectData(data models.SelectModel) string {
 }
 
 func getPagedSelectData(data models.SelectModel, host string, limit int, offset int) string {
-	pag := models.Pagination{}
-
 	db, err := createConnection()
 	if err != nil {
 		return ""
@@ -125,6 +123,9 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	defer db.Close()
 
 	countOfRows := getDataCount(data)
+	fmt.Println(countOfRows)
+
+	pag := models.Pagination{}
 	pag.SelfLink = getLinkForPagination(host, limit, offset)
 	if offset == 0 {
 		pag.PrevLink = ""
@@ -139,13 +140,13 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	pagData, _ := json.Marshal(pag)
 
 	query := GetSelectQuery(data, limit, offset)
-
 	rows, err := db.Query(query)
 	if err != nil {
-		fmt.Println(query)
 		panic(err)
 	}
-	queryText := `{"data" :[`
+	fmt.Println()
+	fmt.Println(query)
+	queryText := `{"data" :[ `
 	for rows.Next() {
 		var data []byte
 		err = rows.Scan(&data)
@@ -154,7 +155,10 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 		}
 		queryText += string(data) + ","
 	}
-	queryText = queryText[:len(queryText)-1] + "]," + "\n \"pagination:\" " + string(pagData) + "}"
+	queryText = queryText[:len(queryText)-1] + "]," + "\n \"pagination\" :" + string(pagData) + "}"
+
+	fmt.Println()
+	fmt.Println(queryText)
 	return queryText
 }
 
@@ -165,7 +169,8 @@ func getDataCount(data models.SelectModel) int {
 	}
 	defer db.Close()
 	query := GetCountQuery(data)
-
+	fmt.Println("get count query")
+	fmt.Println(query)
 	var count int
 	row := db.QueryRow(query)
 	err = row.Scan(&count)

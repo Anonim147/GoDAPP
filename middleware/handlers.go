@@ -17,12 +17,23 @@ import (
 )
 
 func GetTableKeys(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	data := getTableKeys(params["table"])
-	json.NewEncoder(w).Encode(data)
+	data, err := getTableKeys(params["table"])
+	response := models.BaseResponse{
+		Success: true,
+		Value:   data,
+	}
+	if err != nil {
+		response = models.BaseResponse{
+			Success: false,
+			Value:   err.Error,
+		}
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func GetSelectedData(w http.ResponseWriter, r *http.Request) {
@@ -41,19 +52,22 @@ func GetSelectedData(w http.ResponseWriter, r *http.Request) {
 
 func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	params := mux.Vars(r)
-	limit, _ := strconv.Atoi(params["limit"])
-	offset, _ := strconv.Atoi(params["offset"])
-	reqData := models.SelectModel{}
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	if r.Method == "POST" {
+		params := mux.Vars(r)
+		limit, _ := strconv.Atoi(params["limit"])
+		offset, _ := strconv.Atoi(params["offset"])
+		reqData := models.SelectModel{}
+		err := json.NewDecoder(r.Body).Decode(&reqData)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		response := getPagedSelectData(reqData, r.Host, limit, offset)
+		w.Write([]byte(response))
 	}
-	response := getPagedSelectData(reqData, r.Host, limit, offset)
-	w.Write([]byte(response))
 }
 
 func MergeJSON(w http.ResponseWriter, r *http.Request) { // TO DO: прочекати
@@ -71,7 +85,7 @@ func MergeJSON(w http.ResponseWriter, r *http.Request) { // TO DO: прочек�
 	w.Write([]byte(resData))
 }
 
-func UploadTable(w http.ResponseWriter, r *http.Request) { // TO DO: прочекати
+func UploadTable(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
@@ -125,8 +139,7 @@ func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
 			Success: err == nil,
 			Value:   value,
 		}
-		response, _ := json.Marshal(resData)
-		w.Write(response)
+		json.NewEncoder(w).Encode(resData)
 	}
 }
 
@@ -147,12 +160,12 @@ func UpdateTable(w http.ResponseWriter, r *http.Request) { // TO DO: зроби�
 		if err != nil {
 			value = err.Error()
 		}
-		resData := models.BaseResponse{
+		response := models.BaseResponse{
 			Success: err == nil,
 			Value:   value,
 		}
-		response, _ := json.Marshal(resData)
-		w.Write(response)
+
+		json.NewEncoder(w).Encode(response)
 	}
 }
 
@@ -163,6 +176,5 @@ func GetTableList(w http.ResponseWriter, r *http.Request) {
 	m := map[string]interface{}{}
 	tableList, _ := getTableList()
 	m["tables"] = tableList
-	data, _ := json.Marshal(m)
-	w.Write(data)
+	json.NewEncoder(w).Encode(m)
 }

@@ -35,3 +35,8 @@ type BaseResponse struct {
 	Success bool        `json:"success"`
 	Value   interface{} `json:"value"`
 }
+
+type TableKey struct {
+	KeyName string `json:"keyname"`
+	KeyType string `json:"keytype"`
+}

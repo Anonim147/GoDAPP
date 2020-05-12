@@ -28,9 +28,7 @@ func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
 }
 
 func GetCountQuery(data models.SelectModel) string {
-	query := fmt.Sprintf("SELECT COUNT(id) from %s ", data.TableName)
-	query += getFilters(data.Conditions)
-	return query
+	return fmt.Sprintf("SELECT COUNT(dt) from (%s) dt  ", GetSelectQuery(data, 0, 0))
 }
 
 func GetMergeQuery(data models.MergeModel) string {
@@ -105,17 +103,17 @@ func mapLogicalType(data models.SelectCondition) string {
 
 func mapCondition(data models.SelectCondition) string {
 	switch data.ComparisonType {
-	case "lt":
+	case "<":
 		return fmt.Sprintf(` data #> '{ %s }' < '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
-	case "let":
+	case "<=":
 		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
-	case "gt":
+	case ">":
 		return fmt.Sprintf(` data #> '{ %s }' > '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
-	case "get":
+	case ">=":
 		return fmt.Sprintf(` data #> '{ %s }' >= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	case "like":
 		return fmt.Sprintf(` data #>> '{ %s }' like '%%%s%%' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
-	case "eq":
+	case "=":
 		return fmt.Sprintf(` data #>> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
 	default:
 		return fmt.Sprintf(` data #>> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
