@@ -9,9 +9,6 @@
     to 'D:\temp\file.json';
 
 
-
-
-
 insert into store(data) 
     select row_to_json(d) from 
      (SELECT data #> '{ ingredients }' as "ingredients", 
@@ -21,6 +18,11 @@ insert into store(data)
                 WHERE  data #>> '{ dimensions,weight }' like '%50%'  
                     OR  data #>> '{ name }' = 'Pizza') d 
 
+
+
+\copy temp from 'D:\temp\output.json' csv quote e'\x01' delimiter e'\x02';
+
+select value from temp, json_array_elements(temp.data::json) as elem;
 
 insert into store(data) 
 

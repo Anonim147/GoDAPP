@@ -47,36 +47,13 @@ func createTable(tableName string, db *sql.DB) error {
 	return nil
 }
 
-func getTableKeys(tableName string) ([]models.TableKey, error) { //TO DO: handle
+func getTableKeys(tableName string) ([]models.TableKey, error) {
 	db, err := createConnection()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
-	query := `
-	WITH RECURSIVE doc_key_and_value_recursive(key, value) AS (
-		SELECT
-		  t.key,
-		  t.value
-		  FROM ` + tableName + `, jsonb_each(` + tableName + `.data) AS t
-	  
-		UNION ALL
-	  
-		SELECT
-		  CONCAT(doc_key_and_value_recursive.key, '.', t.key),
-		  t.value
-		FROM doc_key_and_value_recursive,
-		  jsonb_each(
-			CASE 
-			  WHEN jsonb_typeof(doc_key_and_value_recursive.value) <> 'object' THEN '{}' :: JSONB
-			  ELSE doc_key_and_value_recursive.value
-			END
-			) AS t
-	  )
-	  SELECT DISTINCT key as key, jsonb_typeof(value) as valuetype
-	  FROM doc_key_and_value_recursive
-	  WHERE jsonb_typeof(doc_key_and_value_recursive.value) NOT IN ( 'object')   --'array',
-	  ORDER BY key`
+	query := GetJSONKeysQuery(tableName)
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
