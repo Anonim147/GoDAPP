@@ -75,8 +75,13 @@ func GetQueryForCopying(tablename string, path string) string {
 	return fmt.Sprintf(`copy %s (data) from '%s'`, tablename, path)
 }
 
-func GetQueryForParseJSON(tablename string) string {
+func GetQueryForParseJSONARRAY(tablename string) string {
 	return fmt.Sprintf(`insert into %s (data) select values from (select jsonb_array_elements(temp.data::jsonb) 
+		as values from temp) temp`, tablename)
+}
+
+func GetQueryForParseJSON(tablename string) string {
+	return fmt.Sprintf(`insert into %s (data) select values from (select temp.data::jsonb 
 		as values from temp) temp`, tablename)
 }
 

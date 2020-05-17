@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"GODAPP/models"
 
@@ -253,8 +254,15 @@ func insertJSONIntoTable(filePath string, tablename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println(GetQueryForParseJSON(tablename))
 
-	res, err := db.Exec(GetQueryForParseJSON(tablename))
+	parseQuery := GetQueryForParseJSON(tablename)
+	index := strings.Index(string(data), `[`) < strings.Index(string(data), `{`)
+	if index {
+		parseQuery = GetQueryForParseJSONARRAY(tablename)
+	}
+
+	res, err := db.Exec(parseQuery)
 	if err != nil {
 		return "", err
 	}
