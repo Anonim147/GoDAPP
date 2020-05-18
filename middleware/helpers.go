@@ -76,6 +76,9 @@ func getSelectData(data models.SelectModel) string {
 	db, err := createConnection()
 	defer db.Close()
 	query := GetSelectQuery(data, 0, 0)
+	fmt.Println("---------------------")
+	fmt.Println(query)
+	fmt.Println("---------------------")
 	rows, err := db.Query(query)
 	if err != nil {
 		panic(err)

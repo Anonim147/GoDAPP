@@ -42,7 +42,7 @@ func GetJSONKeysQuery(tableName string) string {
 	order by path;`, tableName)
 }
 
-func GetSelectQuery(data models.SelectModel, limit int, offset int) string { //TO DO: rewrite for array elements
+func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
 	query := `SELECT row_to_json(d) FROM( `
 	query += getColumns(data)
 
@@ -105,8 +105,7 @@ func GetQueryForDropTable(tablename string) string {
 func getColumns(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {
-		//todo: do another symbol
-		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(s, ".", ",", -1), s)
+		query += fmt.Sprintf(` jsonb_path_query(data, '$.%s') as "%s", `, strings.ReplaceAll(s, ".[]", "[*]"), s)
 	}
 	query = query[:len(query)-2]
 	query += ` FROM ` + data.TableName
@@ -138,19 +137,29 @@ func mapLogicalType(data models.SelectCondition) string {
 func mapCondition(data models.SelectCondition) string {
 	switch data.ComparisonType {
 	case "<":
-		return fmt.Sprintf(` data #> '{ %s }' < '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ < %s)') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	case "<=":
-		return fmt.Sprintf(` data #> '{ %s }' <= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ <= %s)') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	case ">":
-		return fmt.Sprintf(` data #> '{ %s }' > '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ > %s)') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	case ">=":
-		return fmt.Sprintf(` data #> '{ %s }' >= '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ >= %s)') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	case "like":
-		return fmt.Sprintf(` data #>> '{ %s }' like '%%%s%%' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ like_regex "%s" flag "i")') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	case "=":
-		return fmt.Sprintf(` data #>> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == "%s")') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+	case "!=":
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ != "%s")') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	default:
-		return fmt.Sprintf(` data #>> '{ %s }' = '%s' `, strings.Replace(data.ColumnPath, ".", ",", -1), data.Value)
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == "%s")') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	}
 }
 
