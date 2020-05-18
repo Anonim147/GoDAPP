@@ -76,9 +76,6 @@ func getSelectData(data models.SelectModel) string {
 	db, err := createConnection()
 	defer db.Close()
 	query := GetSelectQuery(data, 0, 0)
-	fmt.Println("---------------------")
-	fmt.Println(query)
-	fmt.Println("---------------------")
 	rows, err := db.Query(query)
 	if err != nil {
 		panic(err)
@@ -104,7 +101,6 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	defer db.Close()
 
 	countOfRows := getDataCount(data)
-	fmt.Println(countOfRows)
 
 	pag := models.Pagination{}
 	pag.SelfLink = getLinkForPagination(host, limit, offset)
@@ -125,8 +121,7 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println()
-	fmt.Println(query)
+
 	queryText := `{"data" :[ `
 	for rows.Next() {
 		var data []byte
@@ -137,9 +132,6 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 		queryText += string(data) + ","
 	}
 	queryText = queryText[:len(queryText)-1] + "]," + "\n \"pagination\" :" + string(pagData) + "}"
-
-	fmt.Println()
-	fmt.Println(queryText)
 	return queryText
 }
 
@@ -150,8 +142,6 @@ func getDataCount(data models.SelectModel) int {
 	}
 	defer db.Close()
 	query := GetCountQuery(data)
-	fmt.Println("get count query")
-	fmt.Println(query)
 	var count int
 	row := db.QueryRow(query)
 	err = row.Scan(&count)
@@ -257,7 +247,6 @@ func insertJSONIntoTable(filePath string, tablename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(GetQueryForParseJSON(tablename))
 
 	parseQuery := GetQueryForParseJSON(tablename)
 	index := strings.Index(string(data), `[`) < strings.Index(string(data), `{`)
