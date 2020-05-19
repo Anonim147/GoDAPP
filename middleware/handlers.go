@@ -22,6 +22,8 @@ func GetTableKeys(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
+	fmt.Println(r.URL.Scheme)
+	fmt.Println(r.URL.Scheme)
 	data, err := getTableKeys(params["table"])
 	response := models.BaseResponse{
 		Success: true,

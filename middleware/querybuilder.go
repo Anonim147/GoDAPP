@@ -49,10 +49,11 @@ func GetSelectQuery(data models.SelectModel, limit int, offset int) string {
 	if len(data.Conditions) > 0 {
 		query += getFilters(data.Conditions)
 	}
+	query += `)d`
 	if limit != 0 {
 		query += getLimitOffset(limit, offset)
 	}
-	query += `)d`
+
 	return query
 }
 
@@ -157,6 +158,9 @@ func mapCondition(data models.SelectCondition) string {
 	case "!=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ != "%s")') `,
 			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+	case "have key":
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (exists(@.%s'))') `,
+			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
 	default:
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == "%s")') `,
 			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
@@ -164,7 +168,7 @@ func mapCondition(data models.SelectCondition) string {
 }
 
 func getLimitOffset(limit int, offset int) string {
-	return fmt.Sprintf(" ORDER BY id ASC LIMIT %d OFFSET %d", limit, offset)
+	return fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
 }
 
 func getMergeColumns(data models.MergeModel) string {
@@ -177,4 +181,8 @@ func getMergeColumns(data models.MergeModel) string {
 	query += ` FROM ` + data.SourceTable
 
 	return query
+}
+
+func getLinkForPagination(host string, limit int, offset int) string {
+	return fmt.Sprintf(`http://%s/api/get_data&limit=%d&offset=%d`, host, limit, offset) //TO DO: привязати ссилку глобально
 }

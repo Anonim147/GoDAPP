@@ -94,13 +94,16 @@ func getSelectData(data models.SelectModel) string {
 }
 
 func getPagedSelectData(data models.SelectModel, host string, limit int, offset int) string {
+	fmt.Printf("limit %s \n", limit)
+	fmt.Printf("limit %s \n", offset)
 	db, err := createConnection()
 	if err != nil {
 		return ""
 	}
 	defer db.Close()
 
-	countOfRows := getDataCount(data)
+	countOfRows := getDataCount(db, data)
+	fmt.Printf("count of rows %s\n", countOfRows)
 
 	pag := models.Pagination{}
 	pag.SelfLink = getLinkForPagination(host, limit, offset)
@@ -135,25 +138,16 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	return queryText
 }
 
-func getDataCount(data models.SelectModel) int {
-	db, err := createConnection()
-	if err != nil {
-		return 0
-	}
-	defer db.Close()
+func getDataCount(db *sql.DB, data models.SelectModel) int {
 	query := GetCountQuery(data)
 	var count int
 	row := db.QueryRow(query)
-	err = row.Scan(&count)
+	err := row.Scan(&count)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return count
-}
-
-func getLinkForPagination(host string, limit int, offset int) string {
-	return fmt.Sprintf(`%s/api/get_data&limit={%d}&offset={%d}`, host, limit, offset) //TO DO: привязати ссилку глобально
 }
 
 func mergeSelectedData(data models.MergeModel) int64 {
