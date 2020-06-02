@@ -2,7 +2,6 @@ package temp
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 func createJSON() {
@@ -35,5 +34,4 @@ func createJSON() {
 		jsonData += string(data) + ","
 	}
 	jsonData = jsonData[:len(jsonData)-1] + "]"
-	fmt.Println(jsonData)
 }

@@ -3,7 +3,7 @@ with recursive extract_all as
     select 
         key as path, 
         value
-    from cola
+    from jsonb_test
     cross join lateral jsonb_each(data)
 union all
     select

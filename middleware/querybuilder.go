@@ -2,11 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	"strings"
 
 	"GODAPP/models"
-
-	_ "github.com/lib/pq" //TODO: change to another driver and use another sqls
 )
 
 func GetQueryForTableList() string {
@@ -61,29 +58,16 @@ func GetCountQuery(data models.SelectModel) string {
 	return fmt.Sprintf("SELECT COUNT(dt) from (%s) dt  ", GetSelectQuery(data, 0, 0))
 }
 
-func GetMergeQuery(data models.MergeModel) string {
-	query := fmt.Sprintf("INSERT INTO %s(data) SELECT row_to_json(d) FROM( ", data.TargetTable)
-	query += getMergeColumns(data)
-
-	if len(data.Conditions) > 0 {
-		query += getFilters(data.Conditions)
-	}
-	query += `)d`
-	return query
-}
-
 func GetQueryForCopying(tablename string, path string) string {
 	return fmt.Sprintf(`copy %s (data) from '%s'`, tablename, path)
 }
 
-func GetQueryForParseJSONARRAY(tablename string) string {
-	return fmt.Sprintf(`insert into %s (data) select values from (select jsonb_array_elements(temp.data::jsonb) 
-		as values from temp) temp`, tablename)
+func GetQueryForParseJSONARRAY(tablename string, data string) string {
+	return fmt.Sprintf(`insert into %s (data) select json_array_elements('%s'::json)`, tablename, data)
 }
 
-func GetQueryForParseJSON(tablename string) string {
-	return fmt.Sprintf(`insert into %s (data) select values from (select temp.data::jsonb 
-		as values from temp) temp`, tablename)
+func GetQueryForParseJSON(tablename string, data string) string {
+	return fmt.Sprintf(`insert into %s (data) values('%s'::jsonb)`, tablename, data)
 }
 
 func GetQueryForCreatingHash(tablename string) string {
@@ -106,7 +90,7 @@ func GetQueryForDropTable(tablename string) string {
 func getColumns(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {
-		query += fmt.Sprintf(` jsonb_path_query(data, '$.%s') as "%s", `, strings.ReplaceAll(s, ".[]", "[*]"), s)
+		query += fmt.Sprintf(` jsonb_path_query(data, '%s') as "%s", `, FormatForJsonPathPath(s), s)
 	}
 	query = query[:len(query)-2]
 	query += ` FROM ` + data.TableName
@@ -139,48 +123,36 @@ func mapCondition(data models.SelectCondition) string {
 	switch data.ComparisonType {
 	case "<":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ < %s)') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	case "<=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ <= %s)') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	case ">":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ > %s)') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	case ">=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ >= %s)') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
+	case "=":
+		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == %s)') `,
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	case "like":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ like_regex "%s" flag "i")') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
-	case "=":
-		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == "%s")') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	case "!=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ != "%s")') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	case "have key":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (exists(@.%s'))') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	default:
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == "%s")') `,
-			`$.`+strings.ReplaceAll(data.ColumnPath, ".[]", "[*]"), data.Value)
+			FormatForJsonPathPath(data.ColumnPath), data.Value)
 	}
 }
 
 func getLimitOffset(limit int, offset int) string {
 	return fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
-}
-
-func getMergeColumns(data models.MergeModel) string {
-	query := `SELECT `
-	for srcCol, targCol := range data.MergeColumns {
-		//todo: do another symbol
-		query += fmt.Sprintf(` data #> '{ %s}' as "%s", `, strings.Replace(srcCol, ".", ",", -1), targCol)
-	}
-	query = query[:len(query)-2]
-	query += ` FROM ` + data.SourceTable
-
-	return query
 }
 
 func getLinkForPagination(host string, limit int, offset int) string {

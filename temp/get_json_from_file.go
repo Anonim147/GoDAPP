@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -26,7 +25,6 @@ func main() {
 		last := strings.LastIndex(row, "}")
 		if first > 0 && last > first {
 			row = row[first : last+1]
-			fmt.Println(row)
 			err = json.Unmarshal([]byte(row), &result)
 			if err == nil {
 				jsondtata = append(jsondtata, string(row))
@@ -36,6 +34,4 @@ func main() {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println(jsondtata)
 }

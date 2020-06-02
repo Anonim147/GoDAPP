@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -12,8 +11,6 @@ import (
 	"GODAPP/models"
 
 	"github.com/gorilla/mux"
-
-	_ "github.com/lib/pq" //TODO: change to another driver and use sqlx
 )
 
 func GetTableKeys(w http.ResponseWriter, r *http.Request) {
@@ -22,8 +19,6 @@ func GetTableKeys(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	fmt.Println(r.URL.Scheme)
-	fmt.Println(r.URL.Scheme)
 	data, err := getTableKeys(params["table"])
 	response := models.BaseResponse{
 		Success: true,
@@ -72,21 +67,6 @@ func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func MergeJSON(w http.ResponseWriter, r *http.Request) { // TO DO: прочекати
-	w.Header().Set("Content-Type", "application/text")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	reqData := models.MergeModel{}
-	err := json.NewDecoder(r.Body).Decode(&reqData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	affected := mergeSelectedData(reqData)
-	resData := fmt.Sprintf(`{"affected" : %d}`, affected)
-	w.Write([]byte(resData))
-}
-
 func UploadTable(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -128,7 +108,6 @@ func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
 		reqData := models.InsertTableModel{}
 		err := json.NewDecoder(r.Body).Decode(&reqData)
 		if err != nil {
-			fmt.Println(reqData)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -142,32 +121,6 @@ func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
 			Value:   value,
 		}
 		json.NewEncoder(w).Encode(resData)
-	}
-}
-
-func UpdateTable(w http.ResponseWriter, r *http.Request) { // TO DO: зробити норм модельку на вхід і на вихід
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	if r.Method == "POST" {
-		reqData := models.InsertTableModel{}
-		err := json.NewDecoder(r.Body).Decode(&reqData)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		affected, err := updateJSONIntoTable(reqData.FilePath, reqData.TableName)
-		value := affected
-		if err != nil {
-			value = err.Error()
-		}
-		response := models.BaseResponse{
-			Success: err == nil,
-			Value:   value,
-		}
-
-		json.NewEncoder(w).Encode(response)
 	}
 }
 

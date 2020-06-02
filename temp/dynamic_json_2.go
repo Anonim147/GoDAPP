@@ -3,7 +3,6 @@ package temp
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"reflect"
 )
 
@@ -36,10 +35,8 @@ func rowsToJson() ([]byte, error) {
 
 	var objects []map[string]interface{}
 	query := GetQuery(data)
-	fmt.Println(query)
 	rows, err := db.Query(query)
 	if err != nil {
-		fmt.Println("fuck")
 		panic(err)
 	}
 
@@ -69,7 +66,6 @@ func rowsToJson() ([]byte, error) {
 		if err != nil {
 			panic(err)
 		}
-		//fmt.Println(object["name"])
 		objects = append(objects, object)
 
 	}
