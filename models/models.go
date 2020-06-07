@@ -13,6 +13,13 @@ type SelectCondition struct {
 	Value          string `json:"value"`
 }
 
+type UpdateModel struct {
+	FilePath  string   `json:"filepath"`
+	TableName string   `json:"tablename"`
+	Method    string   `json:"method"`
+	Columns   []string `json:"columns"`
+}
+
 type Pagination struct {
 	PrevLink string `json:"prev_link"`
 	SelfLink string `json:"self_link"`
@@ -24,6 +31,10 @@ type InsertTableModel struct {
 	FilePath  string `json:"filepath"`
 }
 
+type DownloadModel struct {
+	FilePath string `json:"filelink"`
+}
+
 type BaseResponse struct {
 	Success bool        `json:"success"`
 	Value   interface{} `json:"value"`
@@ -32,4 +43,9 @@ type BaseResponse struct {
 type TableKey struct {
 	KeyName string `json:"keyname"`
 	KeyType string `json:"keytype"`
+}
+
+type DBInfo struct {
+	TableName    string `json:"tablename"`
+	RecordsCount int    `json:"records"`
 }

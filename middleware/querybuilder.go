@@ -58,6 +58,10 @@ func GetCountQuery(data models.SelectModel) string {
 	return fmt.Sprintf("SELECT COUNT(dt) from (%s) dt  ", GetSelectQuery(data, 0, 0))
 }
 
+func GetAllDataCountQuery(tableName string) string {
+	return fmt.Sprintf("select count(*) from %s", tableName)
+}
+
 func GetQueryForCopying(tablename string, path string) string {
 	return fmt.Sprintf(`copy %s (data) from '%s'`, tablename, path)
 }
@@ -74,9 +78,10 @@ func GetQueryForCreatingHash(tablename string) string {
 	return fmt.Sprintf(`update %s set hash = md5(data::text);`, tablename)
 }
 
-func GetQueryForUpdateTable(tablename string, temptable string) string {
-	return fmt.Sprintf(`insert into %s (data, hash) select data, hash from %s 
-		where not exists(select 1 from %s where %s.hash = %s.hash);`, tablename, temptable, tablename, tablename, temptable)
+func GetQueryForUpdateTable(tablename string, temptable string, columns []string) string {
+	return fmt.Sprintf(`delete from %s c1 where exists( select 1 from %s c2 %s); 
+		insert into %s(data, hash) select data, hash from %s`,
+		tablename, temptable, FormatForJSONWhere(tablename, columns), tablename, temptable)
 }
 
 func GetQueryForClearTable(tablename string) string {
@@ -90,7 +95,7 @@ func GetQueryForDropTable(tablename string) string {
 func getColumns(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {
-		query += fmt.Sprintf(` jsonb_path_query(data, '%s') as "%s", `, FormatForJsonPathPath(s), s)
+		query += fmt.Sprintf(` jsonb_path_query(data, '%s') as "%s", `, FormatForJsonPath(s), s)
 	}
 	query = query[:len(query)-2]
 	query += ` FROM ` + data.TableName
@@ -123,31 +128,31 @@ func mapCondition(data models.SelectCondition) string {
 	switch data.ComparisonType {
 	case "<":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ < %s)') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case "<=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ <= %s)') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case ">":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ > %s)') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case ">=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ >= %s)') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case "=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == %s)') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case "like":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ like_regex "%s" flag "i")') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case "!=":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ != "%s")') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	case "have key":
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (exists(@.%s'))') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	default:
 		return fmt.Sprintf(` jsonb_path_exists(data, '%s ? (@ == "%s")') `,
-			FormatForJsonPathPath(data.ColumnPath), data.Value)
+			FormatForJsonPath(data.ColumnPath), data.Value)
 	}
 }
 

@@ -7,11 +7,30 @@ import (
 	"strings"
 )
 
-func FormatForJsonPathPath(path string) string {
+func FormatForJsonPath(path string) string {
 	path = strings.ReplaceAll(path, `.`, `"."`)
 	path = strings.ReplaceAll(path, `."[]"`, `[*]`)
 	path = fmt.Sprintf(`$."%s"`, path)
 	return path
+}
+
+func FormatForJSONColumn(tablename string, path string) string {
+	path = strings.ReplaceAll(path, `.`, `,`)
+	return fmt.Sprintf(` %s.data #> '{ %s }' `, tablename, path)
+}
+
+func FormatForJSONWhere(tablename string, columns []string) string {
+	fmt.Println(len(columns))
+	condition := ` where `
+	for index, column := range columns {
+		fmt.Println(index)
+		condition += fmt.Sprintf(` %s = %s`, FormatForJSONColumn("c1", column), FormatForJSONColumn("c2", column))
+		if index != (len(columns) - 1) {
+			condition += ` OR `
+			fmt.Println(condition)
+		}
+	}
+	return condition
 }
 
 func TransformKeys(keys []models.TableKey) []models.TableKey {

@@ -2,12 +2,9 @@ package middleware
 
 import (
 	"crypto/md5"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -141,7 +138,7 @@ func getPagedSelectData(data models.SelectModel, host string, limit int, offset 
 	return queryText
 }
 
-func getDataCount(db *pgx.Conn, data models.SelectModel) int {
+func getDataCount(db *pgx.Conn, data models.SelectModel) int { //TODO: err handling
 	query := GetCountQuery(data)
 	var count int
 	row := db.QueryRow(query)
@@ -153,27 +150,24 @@ func getDataCount(db *pgx.Conn, data models.SelectModel) int {
 	return count
 }
 
+func getAllDataCount(db *pgx.Conn, tableName string) (int, error) {
+	query := GetAllDataCountQuery(tableName)
+	var count int
+	row := db.QueryRow(query)
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func getMD5(data string) string {
 	byteData := []byte(data)
 	return fmt.Sprintf("%x", md5.Sum(byteData))
 }
 
-func getDataFromFile(filepath string) ([]byte, error) {
-	data, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-	return removeSpacesAndNewLines(data), nil
-}
-
-func removeSpacesAndNewLines(data []byte) []byte {
-	//space := regexp.MustCompile(`\s+`)
-	//s := space.ReplaceAllString(string(data), " ")
-	s := strings.ReplaceAll(string(data), `'`, `''`)
-	return []byte(s)
-}
-
-func insertJSONIntoTable(filePath string, tablename string) (string, error) {
+func insertJSONIntoTable(filePath string, tablename string, tableExists bool) (string, error) {
 	start := time.Now()
 	data, err := getDataFromFile(filePath)
 	if err != nil {
@@ -186,9 +180,11 @@ func insertJSONIntoTable(filePath string, tablename string) (string, error) {
 	}
 	defer db.Close()
 
-	err = createTable(db, tablename)
-	if err != nil {
-		return "", err
+	if !tableExists {
+		err = createTable(db, tablename)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	parseQuery := GetQueryForParseJSON(tablename, string(data))
@@ -218,10 +214,10 @@ func insertJSONIntoTable(filePath string, tablename string) (string, error) {
 	return result, nil
 }
 
-func updateJSONIntoTable(filepath string, targetTable string) (string, error) {
+func updateTable(update models.UpdateModel) (string, error) {
 	//To do: temporary file and temporary table to .env
 	tempTable := getRandomString()
-	_, err := insertJSONIntoTable(filepath, tempTable)
+	_, err := insertJSONIntoTable(update.FilePath, tempTable, false)
 
 	db, err := createConnection()
 	if err != nil {
@@ -229,7 +225,9 @@ func updateJSONIntoTable(filepath string, targetTable string) (string, error) {
 	}
 	defer db.Close()
 
-	res, err := db.Exec(GetQueryForUpdateTable(targetTable, tempTable))
+	fmt.Println(GetQueryForUpdateTable(update.TableName, tempTable, update.Columns))
+
+	res, err := db.Exec(GetQueryForUpdateTable(update.TableName, tempTable, update.Columns))
 	if err != nil {
 		return "", err
 	}
@@ -243,6 +241,26 @@ func updateJSONIntoTable(filepath string, targetTable string) (string, error) {
 
 	result := fmt.Sprintf("Updated %s rows", strconv.FormatInt(affected, 10))
 	return result, nil
+}
+
+func replaceTable(update models.UpdateModel) (string, error) {
+	db, err := createConnection()
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	_, err = db.Exec(GetQueryForClearTable(update.TableName))
+	if err != nil {
+		return "", err
+	}
+
+	res, err := insertJSONIntoTable(update.FilePath, update.TableName, true)
+	if err != nil {
+		return "", err
+	}
+
+	return res, nil
 }
 
 func getTableList() ([]string, error) {
@@ -282,19 +300,29 @@ func dropTable(db *pgx.Conn, tableName string) error {
 
 //TO DO : додати експорт в json/csv
 //TO DO : import csv
-func getRandomString() string {
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
-	b := make([]rune, 8)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
 
-func clearTable(db *sql.DB, tablename string) error {
+func clearTable(db *pgx.Conn, tablename string) error {
 	_, err := db.Exec(GetQueryForClearTable(tablename))
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getTableInfo(tablename string) (models.DBInfo, error) {
+	var dbinfo models.DBInfo
+	db, err := createConnection()
+	if err != nil {
+		return dbinfo, err
+	}
+
+	count, err := getAllDataCount(db, tablename)
+	if err != nil {
+		return dbinfo, err
+	}
+
+	dbinfo.TableName = tablename
+	dbinfo.RecordsCount = count
+
+	return dbinfo, nil
 }
