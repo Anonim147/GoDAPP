@@ -125,11 +125,12 @@ func DownloadFileFromLink(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
+func ImportToTable(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
 	if r.Method == "POST" {
 		reqData := models.InsertTableModel{}
 		err := json.NewDecoder(r.Body).Decode(&reqData)
@@ -137,7 +138,7 @@ func ImportToNewTable(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		affected, err := insertJSONIntoTable(reqData.FilePath, reqData.TableName, false)
+		affected, err := insertIntoTable(reqData.FilePath, reqData.TableName, false)
 		value := affected
 		if err != nil {
 			value = err.Error()

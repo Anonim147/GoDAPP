@@ -15,7 +15,7 @@ func Router() *mux.Router {
 	router.HandleFunc("/api/get_data", middleware.GetSelectedData).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/get_data&limit={limit}&offset={offset}", middleware.GetSelectedDataWithPagination).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/upload", middleware.UploadFile).Methods("POST", "OPTIONS")
-	router.HandleFunc("/api/insert_data", middleware.ImportToNewTable).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/insert_data", middleware.ImportToTable).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/download_from_link", middleware.DownloadFileFromLink).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/update_table", middleware.UpdateTable).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/drop_table/{tablename}", middleware.DropTable).Methods("DELETE", "OPTIONS")
