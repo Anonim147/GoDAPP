@@ -94,6 +94,10 @@ func GetQueryForDropTable(tablename string) string {
 	return fmt.Sprintf(`drop table %s`, tablename)
 }
 
+func GetQueryForBuildJSONs(subselect string) string {
+	return fmt.Sprintf(`select row_to_json(d) from (%s) d`, subselect)
+}
+
 func getColumns(data models.SelectModel) string {
 	query := `SELECT `
 	for _, s := range data.Columns {

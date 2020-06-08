@@ -13,11 +13,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func setupResponse(w *http.ResponseWriter, r *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	(*w).Header().Set("Content-Type", "application/json")
+}
+
 func GetTableKeys(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
 	params := mux.Vars(r)
 	data, err := getTableKeys(params["table"])
 	response := models.BaseResponse{
@@ -34,9 +38,7 @@ func GetTableKeys(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSelectedData(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
+	setupResponse(&w, r)
 	reqData := models.SelectModel{}
 	err := json.NewDecoder(r.Body).Decode(&reqData)
 	if err != nil {
@@ -48,10 +50,7 @@ func GetSelectedData(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSelectedDataWithPagination(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	setupResponse(&w, r)
 	if r.Method == "POST" {
 		params := mux.Vars(r)
 		limit, _ := strconv.Atoi(params["limit"])
@@ -100,10 +99,7 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func DownloadFileFromLink(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
 
 	if r.Method == "POST" {
 		var reqData models.DownloadModel
@@ -126,10 +122,7 @@ func DownloadFileFromLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func ImportToTable(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	setupResponse(&w, r)
 
 	if r.Method == "POST" {
 		reqData := models.InsertTableModel{}
@@ -152,8 +145,7 @@ func ImportToTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTableList(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setupResponse(&w, r)
 
 	m := map[string]interface{}{}
 	tableList, _ := getTableList()
@@ -162,10 +154,7 @@ func GetTableList(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateTable(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
 
 	if r.Method == "POST" {
 		fmt.Println("do it")
@@ -196,10 +185,7 @@ func UpdateTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func DropTable(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
 
 	params := mux.Vars(r)
 	tablename := params["tablename"]
@@ -231,10 +217,7 @@ func DropTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func ClearTable(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+	setupResponse(&w, r)
 
 	params := mux.Vars(r)
 	tablename := params["tablename"]
@@ -266,11 +249,7 @@ func ClearTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTableInfo(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
-
+	setupResponse(&w, r)
 	params := mux.Vars(r)
 	tablename := params["tablename"]
 
